@@ -1,4 +1,3 @@
-from collections import Counter
 import json
 from typing import List
 from fastapi import *
@@ -8,38 +7,25 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-def get_db_data():
-	db = {"user": "root",
-      "password": "abcd1234",
-      "host": "127.0.0.1",
-      "database": "attractions"}
+db = {"user": "root",
+	"password": "abcd1234",
+	"host": "127.0.0.1",
+	"database": "attractions"}
 
-	connection_pool = mysql.connector.pooling.MySQLConnectionPool(
-    pool_name="pool0",
-    pool_size=5,
-    **db
+connection_pool = mysql.connector.pooling.MySQLConnectionPool(
+pool_name="pool0",
+pool_size=5,
+**db
 )
 
-	pool_exec = connection_pool.get_connection()
-	cursor = pool_exec.cursor()
-	
-	cursor.execute("SELECT * FROM data")
-	result = cursor.fetchall()
+def get_connection():
+	try:
+		connection = connection_pool.get_connection()
+		yield connection
+	finally:
+		if connection:
+			connection.close()
 
-	if pool_exec.is_connected():
-		cursor.close()
-		pool_exec.close()
-	
-	keys = ["id", "name", "category", "description", "address", "transport", "mrt", "lat", "lng", "images"]
-
-	attractions_data = [dict(zip(keys, attraction)) for attraction in result]
-
-	for attraction in attractions_data:
-		attraction["images"] = json.loads(attraction["images"])
-	
-	return attractions_data
-
-attractions_list = get_db_data()
 
 class AttractionsResponse(BaseModel):
 	nextPage: int | None = None
@@ -55,6 +41,7 @@ class ErrorResponse(BaseModel):
 	error: bool
 	message: str
 
+
 def raise_custom_error(status_code: int, message: str):
     raise HTTPException(
         status_code=status_code,
@@ -68,79 +55,130 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
         content=exc.detail
     )
 
-def paginate(q_page, q_limit, data_list):
-	start = q_page * q_limit
-	end = start + q_limit
-	total_items = len(data_list)
-
-	if start >= total_items:
-		raise_custom_error(404, "Data Not Found")
-	elif total_items < end:
-		next_page = None
-		paginated_items = data_list[start:total_items]
-	else:
-		next_page = q_page + 1
-		paginated_items = data_list[start:end]
-	
-	return next_page, paginated_items
 
 @app.get("/api/attractions", response_model=AttractionsResponse, responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def get_attractions(page: int = Query(0, ge=0), limit: int = Query(12), keyword: str = Query(None)):
-	if attractions_list is None:
-		raise_custom_error(500, "Internal Server Error")
-
+async def get_attractions(page: int = Query(0, ge=0), keyword: str = Query(None), connection=Depends(get_connection)):
 	if keyword:
-		filtered_data = [item for item in attractions_list if keyword in item["name"] or keyword == item["mrt"]]
+		try:
+			query_keyword = ("SELECT * FROM data "
+					"WHERE name LIKE %s OR mrt = %s "
+					"ORDER BY id "
+					"LIMIT 12 OFFSET %s;")
+			offset = page * 12
+			params = ("%" + keyword + "%", keyword, offset)
+			cursor = connection.cursor()
+			cursor.execute(query_keyword, params)
+			result = cursor.fetchall()
+		except Exception:
+			raise_custom_error(500, "Internal Server Error")
+		finally:
+			if cursor:
+				cursor.close()
+		
+		if result:
+			keys = ["id", "name", "category", "description", "address", "transport", "mrt", "lat", "lng", "images"]
 
-		if filtered_data:
-			next_page, paginated_items = paginate(page, limit, filtered_data)
+			attractions_list_by_keyword = [dict(zip(keys, attraction)) for attraction in result]
+
+			for attraction in attractions_list_by_keyword:
+				attraction["images"] = json.loads(attraction["images"])
+			
+			if attractions_list_by_keyword == []:
+				raise_custom_error(404, "Data Not Found")
+			elif len(attractions_list_by_keyword) < 12:
+				next_page = None
+			else:
+				next_page = page + 1
 		else:
 			raise_custom_error(404, "Data Not Found")
 		
 		return AttractionsResponse(
 			nextPage = next_page,
-			data = paginated_items
+			data = attractions_list_by_keyword
 		)
-	
-	next_page, paginated_items = paginate(page, limit, attractions_list)
+	else:
+		try:
+			query_paginated = ("SELECT * FROM data "
+						"ORDER BY id "
+						"LIMIT 12 OFFSET %s;")
+			offset = page * 12
+			cursor = connection.cursor()
+			cursor.execute(query_paginated, (offset,))
+			result = cursor.fetchall()
+		except Exception:
+			raise_custom_error(500, "Internal Server Error")
+		finally:
+			if cursor:
+				cursor.close()
+		
+		keys = ["id", "name", "category", "description", "address", "transport", "mrt", "lat", "lng", "images"]
 
-	return AttractionsResponse(
-		nextPage = next_page,
-		data = paginated_items
-    )
+		attractions_list = [dict(zip(keys, attraction)) for attraction in result]
+
+		for attraction in attractions_list:
+			attraction["images"] = json.loads(attraction["images"])
+
+		if attractions_list == []:
+			raise_custom_error(404, "Data Not Found")
+		elif len(attractions_list) < 12:
+			next_page = None
+		else:
+			next_page = page + 1
+
+		return AttractionsResponse(
+			nextPage = next_page,
+			data = attractions_list
+		)
 
 @app.get("/api/attraction/{attractionId}", response_model=AttractionResponse, responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def get_attraction_by_id(attractionId: int):
-	if attractions_list is None or attractionId is None:
-		raise_custom_error(500, "Internal Server Error")
-
-	filtered_data = [item for item in attractions_list if attractionId == item["id"]]
-
-	if filtered_data:
-		return AttractionResponse(
-		data = filtered_data[0]
-	)
-	else:
-		raise_custom_error(400, "Incorrect or Invalid Id")
-
-@app.get("/api/mrts", response_model=MrtResponse, responses={500: {"model": ErrorResponse}})
-async def get_mrts(mrts_list: list=[], sorted_mrts_list: list=[]):
+async def get_attraction_by_id(attractionId: int, connection=Depends(get_connection)):
 	try:
-		for i in range(len(attractions_list)):
-			mrts_list.append(attractions_list[i]["mrt"])
-		
-		stations = [station for station in mrts_list if station is not None]
-
-		station_counts = Counter(stations)
-
-		sorted_stations = sorted(station_counts.items(), key=lambda x: x[1], reverse=True)
-
-		for station, count in sorted_stations:
-			sorted_mrts_list.append(station)
-
-		return MrtResponse(data = sorted_mrts_list)
+		query_by_id = ("SELECT * FROM data "
+					"WHERE id = %s;")
+		cursor = connection.cursor()
+		cursor.execute(query_by_id, (attractionId,))
+		result = cursor.fetchone()
 	except Exception:
 		raise_custom_error(500, "Internal Server Error")
+	finally:
+		if cursor:
+			cursor.close()
+	
+	if result:
+		keys = ["id", "name", "category", "description", "address", "transport", "mrt", "lat", "lng", "images"]
+
+		attraction_by_id = dict(zip(keys, result))
+		attraction_by_id["images"] = json.loads(attraction_by_id["images"])
+
+		return AttractionResponse(
+		data = attraction_by_id
+		)
+	else:
+		raise_custom_error(400, "Incorrect or Invalid Attraction Id")
+
+@app.get("/api/mrts", response_model=MrtResponse, responses={500: {"model": ErrorResponse}})
+async def get_mrts(connection=Depends(get_connection)):
+	try:
+		query_mrt_count = ("SELECT mrt, COUNT(id) AS mrt_count "
+							"FROM data "
+							"GROUP BY mrt "
+							"ORDER BY mrt_count DESC;")
+		cursor = connection.cursor()
+		cursor.execute(query_mrt_count)
+		result = cursor.fetchall()
+	except Exception:
+		raise_custom_error(500, "Internal Server Error")
+	finally:
+		if cursor:
+			cursor.close()
+	
+	mrts_list = []
+	for mrt_count in result:
+		mrts_list.append(mrt_count[0])
+	
+	mrts_list_filtered = [mrt for mrt in mrts_list if mrt is not None]
+
+	return MrtResponse(data = mrts_list_filtered)
 
 # Static Pages (Never Modify Code in this Block)
 @app.get("/", include_in_schema=False)
