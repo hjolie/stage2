@@ -1,6 +1,6 @@
-function createSpotItems(className, imageUrl, name, mrt, category) {
+function createSpotItems(imageUrl, name, mrt, category) {
     const spotItem = document.createElement("div");
-    spotItem.className = `spot-item ${className}`;
+    spotItem.className = "spot-item";
 
     const spotImage = document.createElement("div");
     spotImage.className = "spot-image";
@@ -29,9 +29,8 @@ function createSpotItems(className, imageUrl, name, mrt, category) {
     return spotItem;
 }
 
-function createMrtList(id, mrt) {
+function createMrtList(mrt) {
     const mrtItem = document.createElement("button");
-    mrtItem.id = id;
     mrtItem.textContent = mrt;
     return mrtItem;
 }
@@ -71,55 +70,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const renderDataByPage = (data) => {
         for (let i = 0; i < data.data.length; i++) {
-            const spotClassName = `title${i}`;
             const firstImage = data.data[i].images[0];
             const spotName = data.data[i].name;
             const spotMrt = data.data[i].mrt;
             const spotCategory = data.data[i].category;
 
             spotContainerByPage.appendChild(
-                createSpotItems(
-                    spotClassName,
-                    firstImage,
-                    spotName,
-                    spotMrt,
-                    spotCategory
-                )
+                createSpotItems(firstImage, spotName, spotMrt, spotCategory)
             );
         }
     };
 
     const renderDataByKeyword = (data) => {
         for (let i = 0; i < data.data.length; i++) {
-            const spotClassName = `title${i}`;
             const firstImage = data.data[i].images[0];
             const spotName = data.data[i].name;
             const spotMrt = data.data[i].mrt;
             const spotCategory = data.data[i].category;
 
             spotContainerByKeyword.appendChild(
-                createSpotItems(
-                    spotClassName,
-                    firstImage,
-                    spotName,
-                    spotMrt,
-                    spotCategory
-                )
+                createSpotItems(firstImage, spotName, spotMrt, spotCategory)
             );
         }
     };
 
     const renderMrtList = (data) => {
         for (let i = 0; i < data.data.length; i++) {
-            const mrtId = `mrt-${i}`;
             const mrt = data.data[i];
-            mrtListContainer.appendChild(createMrtList(mrtId, mrt));
+            mrtListContainer.appendChild(createMrtList(mrt));
         }
     };
 
     const loadNextPage = () => {
-        if (nextPage === null) return;
-        if (isLoading || loadedPages.has(nextPage)) return;
+        if (nextPage === null || isLoading || loadedPages.has(nextPage)) return;
+
         isLoading = true;
 
         if (keyword) {
@@ -128,22 +112,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     loadedPages.add(nextPage);
                     nextPage = data.nextPage;
                     renderDataByKeyword(data);
+                    isLoading = false;
                 })
                 .catch((error) => {
                     console.error("Error Loading Search Data:", error);
+                    isLoading = false;
                 });
-            isLoading = false;
         } else {
             fetchDataByPage(nextPage)
                 .then((data) => {
                     loadedPages.add(nextPage);
                     nextPage = data.nextPage;
                     renderDataByPage(data);
+                    isLoading = false;
                 })
                 .catch((error) => {
                     console.error("Error Loading Data:", error);
+                    isLoading = false;
                 });
-            isLoading = false;
         }
     };
 
@@ -186,22 +172,28 @@ document.addEventListener("DOMContentLoaded", () => {
     // -------------- KEYWORD SEARCH -------------- //
     searchBtn.addEventListener("click", () => {
         keyword = searchBox.value;
-        nextPage = 0;
-        loadedPages.clear();
 
-        fetchDataByKeyword(nextPage, keyword)
-            .then((data) => {
-                loadedPages.add(nextPage);
-                nextPage = data.nextPage;
-                spotContainerByKeyword.innerHTML = "";
-                renderDataByKeyword(data);
-                spotContainerByPage.style.display = "none";
-                spotContainerByKeyword.style.display = "grid";
-            })
-            .catch((error) => {
-                console.error("Error Loading Search Data:", error);
-            });
-        isLoading = false;
+        if (keyword) {
+            nextPage = 0;
+            loadedPages.clear();
+
+            fetchDataByKeyword(nextPage, keyword)
+                .then((data) => {
+                    loadedPages.add(nextPage);
+                    nextPage = data.nextPage;
+                    spotContainerByKeyword.innerHTML = "";
+                    renderDataByKeyword(data);
+                    spotContainerByPage.style.display = "none";
+                    spotContainerByKeyword.style.display = "grid";
+                    isLoading = false;
+                })
+                .catch((error) => {
+                    console.error("Error Loading Search Data:", error);
+                    isLoading = false;
+                });
+        } else {
+            return;
+        }
     });
 
     // -------------- MRT SEARCH -------------- //
@@ -219,11 +211,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 renderDataByKeyword(data);
                 spotContainerByPage.style.display = "none";
                 spotContainerByKeyword.style.display = "grid";
+                isLoading = false;
             })
             .catch((error) => {
                 console.error("Error Loading Search Data:", error);
+                isLoading = false;
             });
-        isLoading = false;
     }
 
     // -------------- MRT SCROLL -------------- //
