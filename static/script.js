@@ -174,6 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
         keyword = searchBox.value;
 
         if (keyword) {
+            isLoading = true;
             nextPage = 0;
             loadedPages.clear();
 
@@ -198,6 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // -------------- MRT SEARCH -------------- //
     function searchByMrt(event) {
+        isLoading = true;
         searchBox.value = event.target.innerText;
         keyword = searchBox.value;
         nextPage = 0;
