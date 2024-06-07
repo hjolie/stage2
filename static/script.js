@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let nextPage = 0;
     let keyword = "";
     let isLoading = true;
+    let loadedPages = new Set();
 
     const fetchDataByPage = (page) => {
         return fetch(`/api/attractions?page=${page}`).then((response) =>
@@ -118,15 +119,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const loadNextPage = () => {
         if (nextPage === null) return;
-        if (isLoading) return;
+        if (isLoading || loadedPages.has(nextPage)) return;
         isLoading = true;
 
         if (keyword) {
             fetchDataByKeyword(nextPage, keyword)
                 .then((data) => {
+                    loadedPages.add(nextPage);
                     nextPage = data.nextPage;
                     renderDataByKeyword(data);
-                    console.log(data);
                 })
                 .catch((error) => {
                     console.error("Error Loading Search Data:", error);
@@ -135,6 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             fetchDataByPage(nextPage)
                 .then((data) => {
+                    loadedPages.add(nextPage);
                     nextPage = data.nextPage;
                     renderDataByPage(data);
                 })
@@ -162,6 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Load the initial 12 items
     fetchDataByPage(nextPage)
         .then((data) => {
+            loadedPages.add(nextPage);
             nextPage = data.nextPage;
             renderDataByPage(data);
             spotContainerByPage.style.display = "grid";
@@ -180,19 +183,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     observer.observe(loadMore);
 
-    // -------------- KEYWORD -------------- //
+    // -------------- KEYWORD SEARCH -------------- //
     searchBtn.addEventListener("click", () => {
         keyword = searchBox.value;
         nextPage = 0;
+        loadedPages.clear();
 
         fetchDataByKeyword(nextPage, keyword)
             .then((data) => {
+                loadedPages.add(nextPage);
                 nextPage = data.nextPage;
                 spotContainerByKeyword.innerHTML = "";
                 renderDataByKeyword(data);
                 spotContainerByPage.style.display = "none";
                 spotContainerByKeyword.style.display = "grid";
-                console.log(data);
             })
             .catch((error) => {
                 console.error("Error Loading Search Data:", error);
@@ -200,20 +204,21 @@ document.addEventListener("DOMContentLoaded", () => {
         isLoading = false;
     });
 
-    // -------------- MRT -------------- //
+    // -------------- MRT SEARCH -------------- //
     function searchByMrt(event) {
         searchBox.value = event.target.innerText;
         keyword = searchBox.value;
         nextPage = 0;
+        loadedPages.clear();
 
         fetchDataByKeyword(nextPage, keyword)
             .then((data) => {
+                loadedPages.add(nextPage);
                 nextPage = data.nextPage;
                 spotContainerByKeyword.innerHTML = "";
                 renderDataByKeyword(data);
                 spotContainerByPage.style.display = "none";
                 spotContainerByKeyword.style.display = "grid";
-                console.log(data);
             })
             .catch((error) => {
                 console.error("Error Loading Search Data:", error);
@@ -221,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
         isLoading = false;
     }
 
-    // -------------- SCROLL -------------- //
+    // -------------- MRT SCROLL -------------- //
     const arrowLeft = document.getElementById("arrow-left");
     const arrowRight = document.getElementById("arrow-right");
 
