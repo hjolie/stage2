@@ -2,10 +2,13 @@ import json
 from typing import List
 from fastapi import *
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 import mysql.connector
 from pydantic import BaseModel
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 db = {"user": "root",
 	"password": "abcd1234",

@@ -1,11 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Index</title>
-</head>
-<body>
-  
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/static/style.css" />
+        <title>Taipei Day Trip</title>
+    </head>
+    <body>
+        <header>
+            <div id="header-container-1">
+                <div id="header-title-menu">
+                    <div>
+                        <p id="title">台北一日遊</p>
+                    </div>
+
+                    <ul id="menu-items">
+                        <li>預定行程</li>
+                        <li>登入/註冊</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="header-container-2">
+                <div id="header-message-search">
+                    <p id="header-message-1">輕鬆享受台北一日悠閒</p>
+                    <p id="header-message-2">
+                        探索每個角落，體驗城市的深度旅遊行程
+                    </p>
+                    <div id="search-container">
+                        <input
+                            type="text"
+                            name="search"
+                            id="search-box"
+                            placeholder="輸入景點名稱查詢"
+                        />
+                        <div id="search-btn">
+                            <img src="/static/images/search.png" alt="Search" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main id="content-container">
+            <div id="scroll-container">
+                <div class="arrow" id="arrow-left">
+                    <img src="/static/images/arrow-left.png" alt="&#9664;" />
+                </div>
+                <div id="mrt-list-container"></div>
+                <div class="arrow" id="arrow-right">
+                    <img src="/static/images/arrow-right.png" alt="&#9654;" />
+                </div>
+            </div>
+
+            <div id="spot-container-by-page" style="display: none"></div>
+            <div id="spot-container-by-keyword" style="display: none"></div>
+            <div id="load-more" style="height: 100px"></div>
+        </main>
+
+        <footer><p>COPYRIGHT &copy; 2024 台北一日遊</p></footer>
+
+        <script src="/static/script.js"></script>
+    </body>
 </html>
