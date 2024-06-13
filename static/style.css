@@ -32,7 +32,7 @@ header {
 #title {
     font-size: 30px;
     font-weight: 700;
-    line-height: 28px;
+    line-height: 32px;
     color: #448899;
 }
 #menu-items {
@@ -202,6 +202,9 @@ input {
     font-weight: 500;
     line-height: 13.3px;
     color: #757575;
+}
+a:link {
+    text-decoration: none;
 }
 
 footer {
