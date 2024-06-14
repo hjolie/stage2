@@ -163,6 +163,14 @@ a:link {
 #date-container label p:nth-of-type(1) {
     margin-right: 15px;
 }
+input[type="date"] {
+    width: 180px;
+    height: 35px;
+    background-color: #fff;
+    border: none;
+    outline: none;
+    cursor: pointer;
+}
 input[type="radio"] {
     width: 22px;
     height: 22px;
