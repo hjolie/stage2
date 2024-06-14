@@ -1,11 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Attraction</title>
-</head>
-<body>
-  
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/static/attraction.css" />
+        <title>Attraction</title>
+    </head>
+    <body>
+        <header>
+            <div id="header-container-1">
+                <div id="header-title-menu">
+                    <a href="/">
+                        <p id="title">台北一日遊</p>
+                    </a>
+                    <ul id="menu-items">
+                        <li>預定行程</li>
+                        <li>登入/註冊</li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        <main>
+            <div id="image-title-date-container">
+                <div id="image-slider-container">
+                    <div id="arrow-left">
+                        <img
+                            src="/static/images/image-arrow-left.png"
+                            alt="&#60;"
+                        />
+                    </div>
+                    <div id="arrow-right">
+                        <img
+                            src="/static/images/image-arrow-right.png"
+                            alt="&#62;"
+                        />
+                    </div>
+                </div>
+                <div id="title-date-container">
+                    <div id="date-container">
+                        <p id="book-title">訂購導覽行程</p>
+                        <p id="book-message">
+                            以此景點為中心的一日行程，帶您探索城市角落故事
+                        </p>
+                        <label for="date" id="date-selection"
+                            >選擇日期：<input type="date" id="date" name="date"
+                        /></label>
+
+                        <label for="time" id="time"
+                            >選擇時間：
+                            <input
+                                type="radio"
+                                name="time"
+                                id="first-half-day"
+                                value="first-half-day"
+                                checked
+                            />
+                            <p>上半天</p>
+
+                            <input
+                                type="radio"
+                                name="time"
+                                id="second-half-day"
+                                value="second-half-day"
+                            />
+                            <p>下半天</p>
+                        </label>
+                        <div id="fee-container">
+                            <p>導覽費用：</p>
+                        </div>
+                        <button type="submit" id="book-btn">
+                            開始預約行程
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="separator-line"></div>
+            <div id="details-container"></div>
+        </main>
+
+        <footer><p>COPYRIGHT &copy; 2024 台北一日遊</p></footer>
+
+        <script src="/static/attraction.js"></script>
+    </body>
 </html>

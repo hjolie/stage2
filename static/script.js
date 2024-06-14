@@ -1,4 +1,9 @@
-function createSpotItems(imageUrl, name, mrt, category) {
+function createSpotItems(id, imageUrl, name, mrt, category) {
+    const link = document.createElement("a");
+    const linkUrl = `/attraction/${id}`;
+    link.setAttribute("href", linkUrl);
+    link.setAttribute("target", "_blank");
+
     const spotItem = document.createElement("div");
     spotItem.className = "spot-item";
 
@@ -26,7 +31,9 @@ function createSpotItems(imageUrl, name, mrt, category) {
     spotItem.appendChild(spotName);
     spotItem.appendChild(spotDetails);
 
-    return spotItem;
+    link.appendChild(spotItem);
+
+    return link;
 }
 
 function createMrtList(mrt) {
@@ -70,26 +77,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const renderDataByPage = (data) => {
         for (let i = 0; i < data.data.length; i++) {
+            const spotId = data.data[i].id;
             const firstImage = data.data[i].images[0];
             const spotName = data.data[i].name;
             const spotMrt = data.data[i].mrt;
             const spotCategory = data.data[i].category;
 
             spotContainerByPage.appendChild(
-                createSpotItems(firstImage, spotName, spotMrt, spotCategory)
+                createSpotItems(
+                    spotId,
+                    firstImage,
+                    spotName,
+                    spotMrt,
+                    spotCategory
+                )
             );
         }
     };
 
     const renderDataByKeyword = (data) => {
         for (let i = 0; i < data.data.length; i++) {
+            const spotId = data.data[i].id;
             const firstImage = data.data[i].images[0];
             const spotName = data.data[i].name;
             const spotMrt = data.data[i].mrt;
             const spotCategory = data.data[i].category;
 
             spotContainerByKeyword.appendChild(
-                createSpotItems(firstImage, spotName, spotMrt, spotCategory)
+                createSpotItems(
+                    spotId,
+                    firstImage,
+                    spotName,
+                    spotMrt,
+                    spotCategory
+                )
             );
         }
     };
