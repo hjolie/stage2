@@ -1,3 +1,4 @@
+from datetime import timedelta
 import json
 from typing import List
 from fastapi import *
@@ -5,6 +6,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import mysql.connector
 from pydantic import BaseModel
+
+from auth import EXPIRE_DAYS, gen_token, verify_token
 
 app = FastAPI()
 
@@ -44,6 +47,21 @@ class ErrorResponse(BaseModel):
 	error: bool
 	message: str
 
+class UserRegister(BaseModel):
+    name: str
+    email: str
+    password: str
+
+class UserSignIn(BaseModel):
+    email: str
+    password: str
+
+class Token(BaseModel):
+    token: str | None = None
+
+class TokenData(BaseModel):
+    data: dict | None = None
+
 
 def raise_custom_error(status_code: int, message: str):
     raise HTTPException(
@@ -58,6 +76,88 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
         content=exc.detail
     )
 
+
+@app.post("/api/user", responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
+async def register_user(user: UserRegister, connection=Depends(get_connection)):
+	name = user.name
+	email = user.email
+	password = user.password
+
+	try:
+		find_user = ("SELECT * FROM user "
+			"WHERE email = %s")
+		cursor = connection.cursor()
+		cursor.execute(find_user, (email,))
+		result = cursor.fetchall()
+	except Exception:
+		raise_custom_error(500, "Internal Server Error - Finding User")
+	finally:
+		if cursor:
+			cursor.close()
+
+	if result:
+		raise_custom_error(400, "This email has been registered.")
+	else:
+		try:
+			add_new_user = ("INSERT INTO user "
+					"(name, email, password) "
+					"VALUES(%s, %s, %s)")
+			new_user_data = (name, email, password)
+			cursor = connection.cursor()
+			cursor.execute(add_new_user, new_user_data)
+			connection.commit()
+			return {"ok": True}
+		except Exception:
+			raise_custom_error(500, "Internal Server Error - Adding New User")
+		finally:
+			if cursor:
+				cursor.close()
+
+@app.put("/api/user/auth", responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
+async def signin(user: UserSignIn, connection=Depends(get_connection)):
+	email = user.email
+	password = user.password
+	
+	try:
+		find_user = ("SELECT id, name FROM user "
+			"WHERE email = %s "
+			"and password = %s")
+		user_credential = (email, password)
+		cursor = connection.cursor()
+		cursor.execute(find_user, user_credential)
+		result = cursor.fetchall()
+	except Exception:
+		raise_custom_error(500, "Internal Server Error - Verifying User")
+	finally:
+		if cursor:
+			cursor.close()
+	
+	if result:
+		for (id, name) in result:
+			user_id = id
+			user_name = name
+		user_data = {
+			"user_id": user_id,
+			"name": user_name,
+			"email": email
+		}
+		token_expires = timedelta(days=EXPIRE_DAYS)
+		token = gen_token(
+        data=user_data, expires_delta=token_expires
+    )
+		return Token(token=token)
+	else:
+		raise_custom_error(400, "Incorrect Email or Password.")
+
+@app.get("/api/user/auth")
+async def get_user_data(authorization: str = Header(...)):
+	try:
+		token = authorization.split(" ")[1]
+		data = verify_token(token)
+		if data:
+			return TokenData(data=data)
+	except Exception:
+		return TokenData(data=None)
 
 @app.get("/api/attractions", response_model=AttractionsResponse, responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
 async def get_attractions(page: int = Query(0, ge=0), keyword: str = Query(None), connection=Depends(get_connection)):
@@ -182,6 +282,7 @@ async def get_mrts(connection=Depends(get_connection)):
 	mrts_list_filtered = [mrt for mrt in mrts_list if mrt is not None]
 
 	return MrtResponse(data = mrts_list_filtered)
+
 
 # Static Pages (Never Modify Code in this Block)
 @app.get("/", include_in_schema=False)
