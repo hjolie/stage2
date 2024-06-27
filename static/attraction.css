@@ -200,6 +200,7 @@ input[type="radio"]:not(:disabled):checked {
     font-weight: 400;
     border: none;
     border-radius: 5px;
+    cursor: pointer;
 }
 
 #separator-line {

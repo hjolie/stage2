@@ -1,11 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Booking</title>
-</head>
-<body>
-  
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/static/booking.css" />
+        <title>Booking</title>
+    </head>
+    <body>
+        <header>
+            <div id="header-container-1">
+                <div id="header-title-menu">
+                    <a href="/">
+                        <p id="title">台北一日遊</p>
+                    </a>
+                    <ul id="menu-items">
+                        <li id="cart-btn">預定行程</li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        <main>
+            <div id="greeting-container"></div>
+            <div id="has-booking-container">
+                <div id="attraction-info-container">
+                    <div id="image-container"></div>
+                    <div id="title-info-container">
+                        <div id="delete-btn">
+                            <img src="/static/images/delete.png" alt="X" />
+                        </div>
+                        <div id="title-container"></div>
+                        <div id="info-container">
+                            <div id="date-container">
+                                <p>日期：</p>
+                            </div>
+                            <div id="time-container">
+                                <p>時間：</p>
+                            </div>
+                            <div id="price-container">
+                                <p>費用：</p>
+                            </div>
+                            <div id="address-container">
+                                <p>地點：</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="separator-line"></div>
+
+                <div id="contact-container">
+                    <p>您的聯絡資訊</p>
+                    <div id="name-container">
+                        <label for="name">聯絡姓名：</label>
+                        <input type="text" name="name" id="name" />
+                    </div>
+                    <div id="email-container">
+                        <label for="email">聯絡信箱：</label>
+                        <input type="email" name="email" id="email" />
+                    </div>
+                    <div id="cell-container">
+                        <label for="cell">手機號碼：</label>
+                        <input type="tel" name="cell" id="cell" />
+                    </div>
+                    <p>
+                        請保持手機暢通，準時到達，導覽人員將用手機與您聯繫，務必留下正確的聯絡方式。
+                    </p>
+                </div>
+
+                <div class="separator-line"></div>
+
+                <div id="creditcard-container">
+                    <p>信用卡付款資訊</p>
+                    <div id="card-number-container">
+                        <label for="card-number">卡片號碼：</label>
+                        <input
+                            type="text"
+                            name="card-number"
+                            id="card-number"
+                            placeholder="**** **** **** ****"
+                        />
+                    </div>
+                    <div id="card-expiry-container">
+                        <label for="card-expiry">過期時間：</label>
+                        <input
+                            type="text"
+                            name="card-expiry"
+                            id="card-expiry"
+                            placeholder="MM/YY"
+                        />
+                    </div>
+                    <div id="card-code-container">
+                        <label for="card-code">驗證密碼：</label>
+                        <input
+                            type="text"
+                            name="card-code"
+                            id="card-code"
+                            placeholder="CVV"
+                        />
+                    </div>
+                </div>
+
+                <div class="separator-line"></div>
+
+                <div id="submit-contianer">
+                    <div id="total-price"></div>
+                    <button type="submit" id="submit-btn">
+                        確認訂購並付款
+                    </button>
+                </div>
+            </div>
+            <div id="no-booking-container">
+                <p>目前沒有任何待預訂的行程</p>
+            </div>
+        </main>
+
+        <footer><p>COPYRIGHT &copy; 2024 台北一日遊</p></footer>
+
+        <script src="/static/booking.js"></script>
+    </body>
 </html>

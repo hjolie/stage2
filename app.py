@@ -6,8 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import mysql.connector
 from pydantic import BaseModel
-
-from auth import EXPIRE_DAYS, gen_token, verify_token
+from auth import EXPIRE_DAYS, gen_token, verify_token, get_user_id_from_token
 
 app = FastAPI()
 
@@ -43,10 +42,6 @@ class AttractionResponse(BaseModel):
 class MrtResponse(BaseModel):
 	data: list[str]
 
-class ErrorResponse(BaseModel):
-	error: bool
-	message: str
-
 class UserRegister(BaseModel):
     name: str
     email: str
@@ -56,11 +51,33 @@ class UserSignIn(BaseModel):
     email: str
     password: str
 
+class BookingInput(BaseModel):
+	attractionId: int
+	date: str
+	time: str
+	price: int
+
+class BookingAttraction(BaseModel):
+    id: int
+    name: str
+    address: str
+    image: str
+
+class Booking(BaseModel):
+	attraction: BookingAttraction
+	date: str
+	time: str
+	price: int
+
 class Token(BaseModel):
     token: str | None = None
 
 class TokenData(BaseModel):
     data: dict | None = None
+
+class ErrorResponse(BaseModel):
+	error: bool
+	message: str
 
 
 def raise_custom_error(status_code: int, message: str):
@@ -76,6 +93,146 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
         content=exc.detail
     )
 
+
+@app.post("/api/booking", responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
+async def book(booking_input: BookingInput, authorization: str = Header(...), connection=Depends(get_connection)):
+	try:
+		token = authorization.split(" ")[1]
+		user_id = get_user_id_from_token(token)
+	except Exception:
+		raise_custom_error(403, "Signin Error - Invalid Token")
+
+	try:
+		find_booking = ("SELECT id FROM booking "
+				"WHERE user_id = %s")
+		cursor = connection.cursor()
+		cursor.execute(find_booking, (user_id,))
+		result = cursor.fetchall()
+	except Exception:
+		raise_custom_error(500, "Internal Server Error - Finding Booking")
+	finally:
+		if cursor:
+			cursor.close()
+
+	if result:
+		try:
+			delete_attraction = ("DELETE FROM booking "
+						"WHERE id = %s")
+			cursor = connection.cursor()
+			id = result[0][0]
+			cursor.execute(delete_attraction, (id,))
+			connection.commit()
+		except Exception:
+			raise_custom_error(500, "Internal Server Error - Deleting Existing Booking")
+		finally:
+			if cursor:
+				cursor.close()
+	
+	try:
+		attractionId = booking_input.attractionId
+		date = booking_input.date
+		time = booking_input.time
+		price = booking_input.price
+	except Exception:
+		raise_custom_error(400, "Invalid Input Data")
+
+	try:
+		save_attraction = ("INSERT INTO booking "
+						"(user_id, attraction_id, date, time, price) "
+						"VALUES (%s, %s, %s, %s, %s)")
+		booking_data = (user_id, attractionId, date, time, price)
+		cursor = connection.cursor()
+		cursor.execute(save_attraction, booking_data)
+		connection.commit()
+		return {"ok": True}
+	except Exception:
+			raise_custom_error(500, "Internal Server Error - Saving Booking")
+	finally:
+		if cursor:
+			cursor.close()
+
+@app.get("/api/booking", responses={403: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
+async def get_booking(authorization: str = Header(...), connection=Depends(get_connection)):
+	try:
+		token = authorization.split(" ")[1]
+		user_id = get_user_id_from_token(token)
+	except Exception:
+		raise_custom_error(403, "Signin Error - Invalid Token")
+
+	try:
+		find_booking = ("SELECT attraction_id, date, time, price FROM booking "
+				"WHERE user_id = %s")
+		cursor = connection.cursor()
+		cursor.execute(find_booking, (user_id,))
+		booking_result = cursor.fetchall()
+	except Exception:
+		raise_custom_error(500, "Internal Server Error - Finding Booking")
+	finally:
+		if cursor:
+			cursor.close()
+	
+	if booking_result:
+		for (attraction_id, date, time, price) in booking_result:
+			attraction_id = attraction_id
+			date = date
+			time = time
+			price = price
+		
+		try:
+			find_attraction = ("SELECT name, address, images FROM data "
+					"WHERE id = %s")
+			cursor = connection.cursor()
+			cursor.execute(find_attraction, (attraction_id,))
+			attraction_result = cursor.fetchall()
+			
+			for (name, address, images) in attraction_result:
+				name = name
+				address = address
+				images = images
+			
+			images = json.loads(images)
+			image = images[0]
+			attraction = BookingAttraction(
+				id = attraction_id,
+				name = name,
+				address = address,
+				image = image
+			)
+			booking = Booking(
+				attraction=attraction,
+				date=date,
+				time=time,
+				price=price
+			)
+			return {"data": booking}
+		except Exception:
+			raise_custom_error(500, "Internal Server Error - Finding Attraction")
+		finally:
+			if cursor:
+				cursor.close()
+	else:
+		return {"data": None}	
+
+@app.delete("/api/booking", responses={403: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
+async def get_booking(authorization: str = Header(...), connection=Depends(get_connection)):
+	try:
+		token = authorization.split(" ")[1]
+		user_id = get_user_id_from_token(token)
+	except Exception:
+		raise_custom_error(403, "Signin Error - Invalid Token")
+	
+	try:
+		delete_booking = ("DELETE FROM booking "
+				"WHERE user_id = %s")
+		cursor = connection.cursor()
+		cursor.execute(delete_booking, (user_id,))
+		connection.commit()
+		return {"ok": True}
+	except Exception:
+		raise_custom_error(500, "Internal Server Error - Deleting Booking")
+	finally:
+		if cursor:
+			cursor.close()
 
 @app.post("/api/user", responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
 async def register_user(user: UserRegister, connection=Depends(get_connection)):

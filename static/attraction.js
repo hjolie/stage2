@@ -108,17 +108,23 @@ const selectTime = () => {
     const fee = document.createElement("p");
 
     fee.id = "fee";
-    fee.textContent = " 新台幣 2000 元";
+    const feeText1 = " 新台幣 ";
+    const feeText2 = " 元";
+    let feeValue = 2000;
+    fee.textContent = feeText1 + feeValue + feeText2;
+
     feeContainer.appendChild(fee);
 
     timeOptions.forEach((option) => {
         const selectedTime = option.value;
         option.addEventListener("change", () => {
             fee.textContent = "";
-            if (selectedTime === "first-half-day") {
-                fee.textContent = " 新台幣 2000 元";
-            } else if (selectedTime === "second-half-day") {
-                fee.textContent = " 新台幣 2500 元";
+            if (selectedTime === "morning") {
+                feeValue = 2000;
+                fee.textContent = feeText1 + feeValue + feeText2;
+            } else if (selectedTime === "afternoon") {
+                feeValue = 2500;
+                fee.textContent = feeText1 + feeValue + feeText2;
             }
             feeContainer.appendChild(fee);
         });
@@ -209,3 +215,76 @@ if (id) {
 } else {
     window.location.href = "/";
 }
+
+const bookBtn = document.getElementById("book-btn");
+bookBtn.addEventListener("click", () => {
+    const date = document.getElementById("date").value;
+    if (!date) {
+        alert("請選擇日期");
+    } else {
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+            const signInSignUp = document.getElementById("signin-signup");
+            signInSignUp.click();
+        } else {
+            const getIdFromUrl = () => {
+                const path = window.location.pathname;
+                const pathSplit = path.split("/");
+                const idString = pathSplit[pathSplit.length - 1];
+                const idInt = parseInt(idString, 10);
+                return idInt;
+            };
+
+            const timeOptions = document.getElementsByName("time");
+            let selectedTime;
+            for (const option of timeOptions) {
+                if (option.checked) {
+                    selectedTime = option.id;
+                    break;
+                }
+            }
+
+            const price = selectedTime === "morning" ? 2000 : 2500;
+
+            const id = getIdFromUrl();
+            if (id) {
+                fetch("/api/booking", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + token,
+                    },
+                    body: JSON.stringify({
+                        attractionId: id,
+                        date: date,
+                        time: selectedTime,
+                        price: price,
+                    }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.ok) {
+                            window.location.href = "/booking";
+                        }
+                    })
+                    .catch((error) => console.error("Error : ", error));
+            }
+        }
+    }
+});
+
+const cartBtn = document.getElementById("cart-btn");
+cartBtn.addEventListener("click", () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+        const signInSignUp = document.getElementById("signin-signup");
+        if (!signInSignUp) {
+            location.reload();
+            signInSignUp.click();
+        } else {
+            signInSignUp.click();
+        }
+    } else {
+        window.location.href = "/booking";
+    }
+});

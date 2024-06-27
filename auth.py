@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 import jwt
-from pydantic import BaseModel
+from dotenv import load_dotenv
+import os
 
-SECRET_KEY = "c9e4fb232f67c14d6d85b84ada2e9ee785cd37a4e0a39fc745bdb75bd8e8379b"
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 EXPIRE_DAYS = 7
 
@@ -27,3 +29,8 @@ def verify_token(token):
 			"email": email
 		}
     return user_data
+
+def get_user_id_from_token(token):
+    token_data = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
+    user_id = token_data.get("user_id")
+    return user_id
