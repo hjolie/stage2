@@ -260,3 +260,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 });
+
+const cartBtn = document.getElementById("cart-btn");
+cartBtn.addEventListener("click", () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+        const signInSignUp = document.getElementById("signin-signup");
+        if (!signInSignUp) {
+            location.reload();
+        } else {
+            signInSignUp.click();
+        }
+    } else {
+        window.location.href = "/booking";
+    }
+});

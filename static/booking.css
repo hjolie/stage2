@@ -1,0 +1,283 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100..900&display=swap");
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Noto Sans TC", sans-serif;
+    font-size: 16px;
+}
+
+header {
+    display: flex;
+    flex-direction: column;
+}
+
+#header-container-1 {
+    width: 100%;
+    height: 54px;
+    display: flex;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    z-index: 10;
+    background-color: #fff;
+    border-bottom: 1px solid #e8e8e8;
+}
+#header-title-menu {
+    width: 1200px;
+    display: flex;
+    justify-content: space-between;
+    margin: 10px;
+}
+#title {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 32px;
+    color: #448899;
+}
+a:link {
+    text-decoration: none;
+}
+#menu-items {
+    list-style-type: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+#menu-items li {
+    margin-left: 20px;
+    font-weight: 500;
+    line-height: 13.3px;
+    color: #666666;
+    cursor: pointer;
+}
+
+#greeting-container {
+    width: 1000px;
+    margin: 0 auto;
+    margin-top: 95px;
+    margin-bottom: 30px;
+    font-size: 19px;
+    font-weight: 700;
+    color: #666;
+}
+
+#has-booking-container {
+    display: none;
+    margin-bottom: 40px;
+}
+#no-booking-container {
+    width: 1000px;
+    margin: 0 auto;
+    display: none;
+    margin-bottom: 50px;
+}
+#no-booking-container p {
+    font-weight: 400;
+    color: #666;
+}
+
+#attraction-info-container {
+    width: 980px;
+    height: 200px;
+    margin: 0 auto;
+    display: grid;
+    grid-gap: 30px;
+    grid-template-columns: 26% 71%;
+}
+#image-container {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+#title-info-container {
+    height: 170px;
+    position: relative;
+}
+#delete-btn {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    cursor: pointer;
+}
+#title-container {
+    font-weight: 700;
+    color: #448899;
+    margin-bottom: 20px;
+}
+#date-container,
+#time-container,
+#price-container,
+#address-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    font-weight: 400;
+    color: #666666;
+}
+#date-container p:first-child,
+#time-container p:first-child,
+#price-container p:first-child,
+#address-container p:first-child {
+    font-weight: 700;
+}
+
+#contact-container,
+#creditcard-container {
+    width: 980px;
+    height: 300px;
+    margin: 0 auto;
+    color: #666;
+}
+#creditcard-container {
+    height: 250px;
+}
+#contact-container p:first-child,
+#creditcard-container p:first-child {
+    font-size: 19px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+#name-container,
+#email-container,
+#cell-container,
+#card-number-container,
+#card-expiry-container,
+#card-code-container {
+    margin-top: 15px;
+}
+#contact-container p:last-child {
+    font-weight: 700;
+    margin-top: 20px;
+}
+input {
+    border: none;
+    outline: none;
+    border: 1px solid #e8e8e8;
+    border-radius: 5px;
+    padding: 10px;
+    font-weight: 500;
+    color: #000;
+}
+
+#submit-contianer {
+    width: 980px;
+    margin: 0 auto;
+    color: #666666;
+    margin-bottom: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 25px;
+}
+#total-price {
+    font-weight: 700;
+}
+#submit-btn {
+    width: 173px;
+    height: 36px;
+    padding: 10px 20px;
+    background-color: #448899;
+    color: #fff;
+    font-size: 19px;
+    font-weight: 400;
+    line-height: 16px;
+    text-align: center;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.separator-line {
+    width: 1200px;
+    height: 1px;
+    background-color: #e8e8e8;
+    margin: 0 auto;
+    margin-bottom: 40px;
+}
+
+footer {
+    width: 100%;
+    height: 104px;
+    background-color: #757575;
+    position: fixed;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+footer p {
+    width: 234px;
+    font-weight: 700;
+    line-height: 13.3px;
+    color: #fff;
+}
+
+@media (max-width: 1200px) {
+    #header-title-menu,
+    #greeting-container,
+    #no-booking-container,
+    #attraction-info-container,
+    #contact-container,
+    #creditcard-container,
+    #submit-contianer,
+    .separator-line {
+        width: 90vw;
+    }
+}
+
+@media (max-width: 750px) {
+    #header-container-1 {
+        justify-content: center;
+    }
+
+    #header-title-menu,
+    #greeting-container,
+    #no-booking-container,
+    #attraction-info-container,
+    #contact-container,
+    #creditcard-container,
+    #submit-contianer,
+    .separator-line {
+        width: 92vw;
+    }
+
+    #attraction-info-container {
+        display: flex;
+        flex-direction: column;
+        height: 430px;
+        margin-bottom: 0;
+    }
+
+    #submit-contianer {
+        margin-bottom: 120px;
+    }
+
+    footer {
+        height: 54px;
+    }
+}
+
+@media (max-width: 660px) {
+    #contact-container {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 450px) {
+    #attraction-info-container {
+        margin-bottom: 30px;
+    }
+    #title-info-container {
+        height: 210px;
+    }
+    #delete-btn {
+        top: unset;
+        bottom: 0;
+    }
+}

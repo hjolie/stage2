@@ -14,12 +14,75 @@
                         <p id="title">台北一日遊</p>
                     </a>
                     <ul id="menu-items">
-                        <li>預定行程</li>
-                        <li>登入/註冊</li>
+                        <li id="cart-btn">預定行程</li>
                     </ul>
                 </div>
             </div>
         </header>
+        <div id="popup-background">
+            <div id="signin-container">
+                <div class="top-bar"></div>
+                <div class="popup-close">
+                    <img src="/static/images/close.png" alt="X" />
+                </div>
+                <div class="popup-content-box">
+                    <div class="popup-title">登入會員帳號</div>
+                    <input
+                        type="email"
+                        name="email"
+                        id="signin-email"
+                        placeholder="輸入電子信箱"
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        id="signin-password"
+                        placeholder="輸入密碼"
+                    />
+                    <button type="submit" id="signin-btn">登入帳戶</button>
+                    <div id="signin-success">登入成功</div>
+                    <div id="signin-error">信箱或密碼錯誤</div>
+                    <div class="popup-msg">
+                        還沒有帳戶？
+                        <span id="click-to-signup">點此註冊</span>
+                    </div>
+                </div>
+            </div>
+            <div id="signup-container">
+                <div class="top-bar"></div>
+                <div class="popup-close">
+                    <img src="/static/images/close.png" alt="X" />
+                </div>
+                <div class="popup-content-box">
+                    <div class="popup-title">註冊會員帳號</div>
+                    <input
+                        type="text"
+                        name="name"
+                        id="signup-name"
+                        placeholder="輸入姓名"
+                    />
+                    <input
+                        type="email"
+                        name="email"
+                        id="signup-email"
+                        placeholder="輸入電子信箱"
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        id="signup-password"
+                        placeholder="輸入密碼"
+                    />
+                    <button type="submit" id="signup-btn">註冊新帳戶</button>
+                    <div id="signup-success">註冊成功</div>
+                    <div id="signup-error">此信箱已被註冊</div>
+                    <div class="popup-msg">
+                        已經有帳戶了？
+                        <span id="click-to-signin">點此登入</span>
+                    </div>
+                </div>
+            </div>
+        </div>
         <main>
             <div id="image-title-date-container">
                 <div id="image-slider-container">
@@ -51,8 +114,8 @@
                             <input
                                 type="radio"
                                 name="time"
-                                id="first-half-day"
-                                value="first-half-day"
+                                id="morning"
+                                value="morning"
                                 checked
                             />
                             <p>上半天</p>
@@ -60,8 +123,8 @@
                             <input
                                 type="radio"
                                 name="time"
-                                id="second-half-day"
-                                value="second-half-day"
+                                id="afternoon"
+                                value="afternoon"
                             />
                             <p>下半天</p>
                         </label>
@@ -80,6 +143,8 @@
 
         <footer><p>COPYRIGHT &copy; 2024 台北一日遊</p></footer>
 
+        <script src="/static/hasToken.js"></script>
+        <script src="/static/popupDialog.js"></script>
         <script src="/static/attraction.js"></script>
     </body>
 </html>
