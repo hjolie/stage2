@@ -143,19 +143,24 @@ const renderTotalPrice = (price) => {
 const handleDeleteBtn = () => {
     const deleteBtn = document.getElementById("delete-btn");
     deleteBtn.addEventListener("click", () => {
-        fetch("/api/booking", {
-            method: "DELETE",
-            headers: {
-                Authorization: "Bearer " + token,
-            },
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.ok) {
-                    location.reload();
-                }
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+            window.location.href = "/";
+        } else {
+            fetch("/api/booking", {
+                method: "DELETE",
+                headers: {
+                    Authorization: "Bearer " + token,
+                },
             })
-            .catch((error) => console.error("Error: ", error));
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.ok) {
+                        location.reload();
+                    }
+                })
+                .catch((error) => console.error("Error: ", error));
+        }
     });
 };
 

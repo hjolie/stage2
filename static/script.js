@@ -268,7 +268,6 @@ cartBtn.addEventListener("click", () => {
         const signInSignUp = document.getElementById("signin-signup");
         if (!signInSignUp) {
             location.reload();
-            signInSignUp.click();
         } else {
             signInSignUp.click();
         }

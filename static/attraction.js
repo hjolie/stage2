@@ -225,7 +225,11 @@ bookBtn.addEventListener("click", () => {
         const token = localStorage.getItem("authToken");
         if (!token) {
             const signInSignUp = document.getElementById("signin-signup");
-            signInSignUp.click();
+            if (!signInSignUp) {
+                location.reload();
+            } else {
+                signInSignUp.click();
+            }
         } else {
             const getIdFromUrl = () => {
                 const path = window.location.pathname;
@@ -280,7 +284,6 @@ cartBtn.addEventListener("click", () => {
         const signInSignUp = document.getElementById("signin-signup");
         if (!signInSignUp) {
             location.reload();
-            signInSignUp.click();
         } else {
             signInSignUp.click();
         }
