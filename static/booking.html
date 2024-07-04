@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="/static/booking.css" />
+        <link rel="stylesheet" href="/static/css/booking.css" />
         <title>Booking</title>
     </head>
     <body>
@@ -72,31 +72,16 @@
                 <div id="creditcard-container">
                     <p>信用卡付款資訊</p>
                     <div id="card-number-container">
-                        <label for="card-number">卡片號碼：</label>
-                        <input
-                            type="text"
-                            name="card-number"
-                            id="card-number"
-                            placeholder="**** **** **** ****"
-                        />
+                        <label>卡片號碼：</label>
+                        <div class="tpfield" id="card-number"></div>
                     </div>
                     <div id="card-expiry-container">
-                        <label for="card-expiry">過期時間：</label>
-                        <input
-                            type="text"
-                            name="card-expiry"
-                            id="card-expiry"
-                            placeholder="MM/YY"
-                        />
+                        <label>過期時間：</label>
+                        <div class="tpfield" id="card-expiration-date"></div>
                     </div>
                     <div id="card-code-container">
-                        <label for="card-code">驗證密碼：</label>
-                        <input
-                            type="text"
-                            name="card-code"
-                            id="card-code"
-                            placeholder="CVV"
-                        />
+                        <label>驗證密碼：</label>
+                        <div class="tpfield" id="card-ccv"></div>
                     </div>
                 </div>
 
@@ -113,9 +98,102 @@
                 <p>目前沒有任何待預訂的行程</p>
             </div>
         </main>
-
         <footer><p>COPYRIGHT &copy; 2024 台北一日遊</p></footer>
 
-        <script src="/static/booking.js"></script>
+        <script src="/static/scripts/booking.js"></script>
+        <script src="https://js.tappaysdk.com/sdk/tpdirect/v5.18.0"></script>
+        <script>
+            TPDirect.setupSDK(
+                151770,
+                "app_k0CaC803D29Cb1m3Jw56yyF1VevPDibK0dkjmcTiPuGQ0q95D1s7KlV5hw30",
+                "sandbox"
+            );
+            let fields = {
+                number: {
+                    element: "#card-number",
+                    placeholder: "**** **** **** ****",
+                },
+                expirationDate: {
+                    element: document.getElementById("card-expiration-date"),
+                    placeholder: "MM / YY",
+                },
+                ccv: {
+                    element: "#card-ccv",
+                    placeholder: "ccv",
+                },
+            };
+            TPDirect.card.setup({
+                fields: fields,
+                styles: {
+                    input: {
+                        color: "gray",
+                    },
+                    "input.ccv": {
+                        "font-size": "16px",
+                    },
+                    "input.expiration-date": {
+                        "font-size": "16px",
+                    },
+                    "input.card-number": {
+                        "font-size": "16px",
+                    },
+                    ":focus": {
+                        color: "black",
+                    },
+                    ".valid": {
+                        color: "green",
+                    },
+                    ".invalid": {
+                        color: "red",
+                    },
+                    // Media queries
+                    // Note that these apply to the iframe, not the root window.
+                    "@media screen and (max-width: 400px)": {
+                        input: {
+                            color: "orange",
+                        },
+                    },
+                },
+                isMaskCreditCardNumber: true,
+                maskCreditCardNumberRange: {
+                    beginIndex: 6,
+                    endIndex: 11,
+                },
+            });
+
+            const submitBtn = document.querySelector("#submit-btn");
+            submitBtn.addEventListener("click", (e) => {
+                e.preventDefault();
+
+                const tappayStatus = TPDirect.card.getTappayFieldsStatus();
+
+                if (tappayStatus.canGetPrime === false) {
+                    alert("信用卡資訊不正確");
+                    return;
+                }
+
+                let prime;
+                TPDirect.card.getPrime((result) => {
+                    if (result.status !== 0) {
+                        alert("Get prime error: " + result.msg);
+                        return;
+                    }
+
+                    prime = result.card.prime;
+                    alert("Get prime success, prime: " + prime);
+
+                    handleSubmitBtn(
+                        prime,
+                        id,
+                        image,
+                        name1,
+                        date,
+                        time,
+                        price,
+                        address
+                    );
+                });
+            });
+        </script>
     </body>
 </html>
