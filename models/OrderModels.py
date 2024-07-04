@@ -30,12 +30,12 @@ def get_order_id(order_number):
     finally:
         connection.close()
 
-def save_payment_success(order_id, status, msg, amount, acquirer, currency, rec_trade_id, bank_transaction_id, auth_code, last_four, bin_code, transaction_time_millis, card_identifier, merchant_id):
+def save_payment_success(order_id, status, msg, amount, acquirer, currency, rec_trade_id, bank_transaction_id, auth_code, last_four, bin_code, merchant_id):
     try:
         save_payment = ("INSERT INTO payment "
-                        "(order_id, status, msg, amount, acquirer, currency, rec_trade_id, bank_transaction_id, auth_code, last_four, bin_code, transaction_time_millis, card_identifier, merchant_id) "
-                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
-        payment_data = (order_id, status, msg, amount, acquirer, currency, rec_trade_id, bank_transaction_id, auth_code, last_four, bin_code, transaction_time_millis, card_identifier, merchant_id)
+                        "(order_id, status, msg, amount, acquirer, currency, rec_trade_id, bank_transaction_id, auth_code, last_four, bin_code, merchant_id) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
+        payment_data = (order_id, status, msg, amount, acquirer, currency, rec_trade_id, bank_transaction_id, auth_code, last_four, bin_code, merchant_id)
         connection = connection_pool.get_connection()
         cursor = connection.cursor()
         cursor.execute(save_payment, payment_data)

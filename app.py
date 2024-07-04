@@ -59,8 +59,10 @@ async def handle_create_order(create_order: CreateOrder, authorization: str = He
 
 		result_order_id = get_order_id(order_number)
 		order_id = result_order_id[0]
+		print(order_id)
 		
 		result_payment = await pay_by_prime(prime, price, contact_phone, contact_name, contact_email, attraction_address)
+		print(result_payment)
 
 		status = result_payment.get("status")
 		msg = result_payment.get("msg")
@@ -76,10 +78,8 @@ async def handle_create_order(create_order: CreateOrder, authorization: str = He
 			card_info = result_payment.get("card_info")
 			last_four = card_info.get("last_four")
 			bin_code = card_info.get("bin_code")
-			transaction_time_millis = result_payment.get("transaction_time_millis")
-			card_identifier = result_payment.get("card_identifier")
 
-			save_payment_success(order_id, status, msg, amount, acquirer, currency, rec_trade_id, bank_transaction_id, auth_code, last_four, bin_code, transaction_time_millis, card_identifier, merchant_id)
+			save_payment_success(order_id, status, msg, amount, acquirer, currency, rec_trade_id, bank_transaction_id, auth_code, last_four, bin_code, merchant_id)
 
 			update_order_status(order_id)
 			delete_booking_page_data(user_id)
