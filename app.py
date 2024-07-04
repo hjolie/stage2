@@ -6,13 +6,13 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from models.AttractionModels import get_attraction_by_id, get_attractions, get_attractions_by_keyword
 from models.BookingModels import create_booking, delete_booking, find_booking, get_attraction, get_booking
-from ErrorHandler import raise_custom_error
+from ErrorHandler import raise_custom_error, ErrorResponse
 from models.MrtModel import get_mrts
 from models.OrderModels import create_order_data, delete_booking_page_data, get_order_id, save_payment_failed, save_payment_success, update_order_status
 from TapPay import pay_by_prime
 from models.UserModels import find_user, signin_user, signup_user
 from auth import EXPIRE_DAYS, gen_token, verify_token, get_user_id_from_token
-from PydanticModels import AttractionResponse, AttractionsResponse, Booking, BookingAttraction, BookingInput, CreateOrder, ErrorResponse, MrtResponse, Payment, PaymentResponse, Token, TokenData, UserRegister, UserSignIn
+from PydanticModels import AttractionResponse, AttractionsResponse, Booking, BookingAttraction, BookingInput, CreateOrder, MrtResponse, Payment, PaymentResponse, Token, TokenData, UserRegister, UserSignIn
 
 app = FastAPI()
 

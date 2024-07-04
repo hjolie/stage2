@@ -44,10 +44,6 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     data: dict | None = None
 
-class ErrorResponse(BaseModel):
-	error: bool
-	message: str
-
 class UserContact(BaseModel):
 	name: str
 	email: str
