@@ -59,10 +59,8 @@ async def handle_create_order(create_order: CreateOrder, authorization: str = He
 
 		result_order_id = get_order_id(order_number)
 		order_id = result_order_id[0]
-		print(order_id)
 		
 		result_payment = await pay_by_prime(prime, price, contact_phone, contact_name, contact_email, attraction_address)
-		print(result_payment)
 
 		status = result_payment.get("status")
 		msg = result_payment.get("msg")
