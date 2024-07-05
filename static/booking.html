@@ -168,19 +168,18 @@
                 const tappayStatus = TPDirect.card.getTappayFieldsStatus();
 
                 if (tappayStatus.canGetPrime === false) {
-                    alert("信用卡資訊不正確");
+                    alert("信用卡資訊或格式不正確");
                     return;
                 }
 
                 let prime;
                 TPDirect.card.getPrime((result) => {
                     if (result.status !== 0) {
-                        alert("Get prime error: " + result.msg);
+                        alert("信用卡付款連線失敗");
                         return;
                     }
 
                     prime = result.card.prime;
-                    alert("Get prime success, prime: " + prime);
 
                     handleSubmitBtn(
                         prime,
