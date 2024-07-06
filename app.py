@@ -1,90 +1,22 @@
 from datetime import timedelta
 import json
-from typing import List
+import uuid
 from fastapi import *
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-import mysql.connector
-from pydantic import BaseModel
+from models.AttractionModels import get_attraction_by_id, get_attractions, get_attractions_by_keyword
+from models.BookingModels import create_booking, delete_booking, find_booking, get_attraction, get_booking
+from ErrorHandler import raise_custom_error, ErrorResponse
+from models.MrtModel import get_mrts
+from models.OrderModels import create_order_data, delete_booking_page_data, get_order_id, save_payment_failed, save_payment_success, update_order_status
+from TapPay import pay_by_prime
+from models.UserModels import find_user, signin_user, signup_user
 from auth import EXPIRE_DAYS, gen_token, verify_token, get_user_id_from_token
+from PydanticModels import AttractionResponse, AttractionsResponse, Booking, BookingAttraction, BookingInput, CreateOrder, MrtResponse, Payment, PaymentResponse, Token, TokenData, UserRegister, UserSignIn
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-db = {"user": "root",
-	"password": "abcd1234",
-	"host": "127.0.0.1",
-	"database": "attractions"}
-
-connection_pool = mysql.connector.pooling.MySQLConnectionPool(
-pool_name="pool0",
-pool_size=5,
-**db
-)
-
-def get_connection():
-	try:
-		connection = connection_pool.get_connection()
-		yield connection
-	finally:
-		if connection:
-			connection.close()
-
-
-class AttractionsResponse(BaseModel):
-	nextPage: int | None = None
-	data: List[dict]
-
-class AttractionResponse(BaseModel):
-	data: dict
-
-class MrtResponse(BaseModel):
-	data: list[str]
-
-class UserRegister(BaseModel):
-    name: str
-    email: str
-    password: str
-
-class UserSignIn(BaseModel):
-    email: str
-    password: str
-
-class BookingInput(BaseModel):
-	attractionId: int
-	date: str
-	time: str
-	price: int
-
-class BookingAttraction(BaseModel):
-    id: int
-    name: str
-    address: str
-    image: str
-
-class Booking(BaseModel):
-	attraction: BookingAttraction
-	date: str
-	time: str
-	price: int
-
-class Token(BaseModel):
-    token: str | None = None
-
-class TokenData(BaseModel):
-    data: dict | None = None
-
-class ErrorResponse(BaseModel):
-	error: bool
-	message: str
-
-
-def raise_custom_error(status_code: int, message: str):
-    raise HTTPException(
-        status_code=status_code,
-        detail={"error": True, "message": message}
-    )
 
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
@@ -94,8 +26,8 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
-@app.post("/api/booking", responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def book(booking_input: BookingInput, authorization: str = Header(...), connection=Depends(get_connection)):
+@app.post("/api/orders", responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
+async def handle_create_order(create_order: CreateOrder, authorization: str = Header(...)):
 	try:
 		token = authorization.split(" ")[1]
 		user_id = get_user_id_from_token(token)
@@ -103,30 +35,80 @@ async def book(booking_input: BookingInput, authorization: str = Header(...), co
 		raise_custom_error(403, "Signin Error - Invalid Token")
 
 	try:
-		find_booking = ("SELECT id FROM booking "
-				"WHERE user_id = %s")
-		cursor = connection.cursor()
-		cursor.execute(find_booking, (user_id,))
-		result = cursor.fetchall()
+		prime = create_order.prime
+		order = create_order.order
+		attraction = order.trip.attraction
+		contact = order.contact
+		price = order.price
+
+		attraction_id = attraction.id
+		attraction_name = attraction.name
+		attraction_address = attraction.address
+		
+		date = order.trip.date
+		time = order.trip.time
+
+		contact_name = contact.name
+		contact_email = contact.email
+		contact_phone = contact.phone
+
+		uuid_number = uuid.uuid4()
+		order_number = str(uuid_number)
+
+		create_order_data(order_number, user_id, attraction_id, attraction_name, date, time, price, contact_name, contact_email, contact_phone) #status set default unpaid 
+
+		result_order_id = get_order_id(order_number)
+		order_id = result_order_id[0]
+		
+		result_payment = await pay_by_prime(prime, price, contact_phone, contact_name, contact_email, attraction_address)
+
+		status = result_payment.get("status")
+		msg = result_payment.get("msg")
+		rec_trade_id = result_payment.get("rec_trade_id")
+		merchant_id = result_payment.get("merchant_id")
+
+		if status == 0:
+			amount = result_payment.get("amount")
+			acquirer = result_payment.get("acquirer")
+			currency = result_payment.get("currency")
+			bank_transaction_id = result_payment.get("bank_transaction_id")
+			auth_code = result_payment.get("auth_code")
+			card_info = result_payment.get("card_info")
+			last_four = card_info.get("last_four")
+			bin_code = card_info.get("bin_code")
+
+			save_payment_success(order_id, status, msg, amount, acquirer, currency, rec_trade_id, bank_transaction_id, auth_code, last_four, bin_code, merchant_id)
+
+			update_order_status(order_id)
+			delete_booking_page_data(user_id)
+		else:
+			save_payment_failed(order_id, status, msg, rec_trade_id, merchant_id)
+		
+		payment = Payment(
+			status = status,
+			message = msg
+			)
+		payment_response = PaymentResponse(
+			number = order_number,
+			payment = payment
+			)
+		return {"data": payment_response}
 	except Exception:
-		raise_custom_error(500, "Internal Server Error - Finding Booking")
-	finally:
-		if cursor:
-			cursor.close()
+		raise_custom_error(400, "Order Error - Failed to Create New Order and Complete Payment Process")
+	
+@app.post("/api/booking", responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
+async def handle_create_booking(booking_input: BookingInput, authorization: str = Header(...)):
+	try:
+		token = authorization.split(" ")[1]
+		user_id = get_user_id_from_token(token)
+	except Exception:
+		raise_custom_error(403, "Signin Error - Invalid Token")
+
+	result = find_booking(user_id)
 
 	if result:
-		try:
-			delete_attraction = ("DELETE FROM booking "
-						"WHERE id = %s")
-			cursor = connection.cursor()
-			id = result[0][0]
-			cursor.execute(delete_attraction, (id,))
-			connection.commit()
-		except Exception:
-			raise_custom_error(500, "Internal Server Error - Deleting Existing Booking")
-		finally:
-			if cursor:
-				cursor.close()
+		id = result[0][0]
+		delete_booking(id)
 	
 	try:
 		attractionId = booking_input.attractionId
@@ -136,158 +118,82 @@ async def book(booking_input: BookingInput, authorization: str = Header(...), co
 	except Exception:
 		raise_custom_error(400, "Invalid Input Data")
 
-	try:
-		save_attraction = ("INSERT INTO booking "
-						"(user_id, attraction_id, date, time, price) "
-						"VALUES (%s, %s, %s, %s, %s)")
-		booking_data = (user_id, attractionId, date, time, price)
-		cursor = connection.cursor()
-		cursor.execute(save_attraction, booking_data)
-		connection.commit()
-		return {"ok": True}
-	except Exception:
-			raise_custom_error(500, "Internal Server Error - Saving Booking")
-	finally:
-		if cursor:
-			cursor.close()
+	result_booking = create_booking(user_id, attractionId, date, time, price)
+	return result_booking
 
 @app.get("/api/booking", responses={403: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def get_booking(authorization: str = Header(...), connection=Depends(get_connection)):
+async def handle_get_booking(authorization: str = Header(...)):
 	try:
 		token = authorization.split(" ")[1]
 		user_id = get_user_id_from_token(token)
 	except Exception:
 		raise_custom_error(403, "Signin Error - Invalid Token")
 
-	try:
-		find_booking = ("SELECT attraction_id, date, time, price FROM booking "
-				"WHERE user_id = %s")
-		cursor = connection.cursor()
-		cursor.execute(find_booking, (user_id,))
-		booking_result = cursor.fetchall()
-	except Exception:
-		raise_custom_error(500, "Internal Server Error - Finding Booking")
-	finally:
-		if cursor:
-			cursor.close()
+	result = get_booking(user_id)
 	
-	if booking_result:
-		for (attraction_id, date, time, price) in booking_result:
+	if result:
+		for (attraction_id, date, time, price) in result:
 			attraction_id = attraction_id
 			date = date
 			time = time
 			price = price
 		
-		try:
-			find_attraction = ("SELECT name, address, images FROM data "
-					"WHERE id = %s")
-			cursor = connection.cursor()
-			cursor.execute(find_attraction, (attraction_id,))
-			attraction_result = cursor.fetchall()
-			
-			for (name, address, images) in attraction_result:
-				name = name
-				address = address
-				images = images
-			
-			images = json.loads(images)
-			image = images[0]
-			attraction = BookingAttraction(
-				id = attraction_id,
-				name = name,
-				address = address,
-				image = image
-			)
-			booking = Booking(
-				attraction=attraction,
-				date=date,
-				time=time,
-				price=price
-			)
-			return {"data": booking}
-		except Exception:
-			raise_custom_error(500, "Internal Server Error - Finding Attraction")
-		finally:
-			if cursor:
-				cursor.close()
+		attraction_result = get_attraction(attraction_id)
+
+		for (name, address, images) in attraction_result:
+			name = name
+			address = address
+			images = images
+		
+		images = json.loads(images)
+		image = images[0]
+		attraction = BookingAttraction(
+			id = attraction_id,
+			name = name,
+			address = address,
+			image = image
+		)
+		booking = Booking(
+			attraction=attraction,
+			date=date,
+			time=time,
+			price=price
+		)
+		return {"data": booking}
 	else:
 		return {"data": None}	
 
 @app.delete("/api/booking", responses={403: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def get_booking(authorization: str = Header(...), connection=Depends(get_connection)):
+async def handle_delete_booking(authorization: str = Header(...)):
 	try:
 		token = authorization.split(" ")[1]
 		user_id = get_user_id_from_token(token)
 	except Exception:
 		raise_custom_error(403, "Signin Error - Invalid Token")
 	
-	try:
-		delete_booking = ("DELETE FROM booking "
-				"WHERE user_id = %s")
-		cursor = connection.cursor()
-		cursor.execute(delete_booking, (user_id,))
-		connection.commit()
-		return {"ok": True}
-	except Exception:
-		raise_custom_error(500, "Internal Server Error - Deleting Booking")
-	finally:
-		if cursor:
-			cursor.close()
+	result = delete_booking(user_id)
+	return result
 
 @app.post("/api/user", responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def register_user(user: UserRegister, connection=Depends(get_connection)):
+async def handle_register_user(user: UserRegister):
 	name = user.name
 	email = user.email
 	password = user.password
 
-	try:
-		find_user = ("SELECT * FROM user "
-			"WHERE email = %s")
-		cursor = connection.cursor()
-		cursor.execute(find_user, (email,))
-		result = cursor.fetchall()
-	except Exception:
-		raise_custom_error(500, "Internal Server Error - Finding User")
-	finally:
-		if cursor:
-			cursor.close()
+	result = find_user(email)
 
 	if result:
 		raise_custom_error(400, "This email has been registered.")
 	else:
-		try:
-			add_new_user = ("INSERT INTO user "
-					"(name, email, password) "
-					"VALUES(%s, %s, %s)")
-			new_user_data = (name, email, password)
-			cursor = connection.cursor()
-			cursor.execute(add_new_user, new_user_data)
-			connection.commit()
-			return {"ok": True}
-		except Exception:
-			raise_custom_error(500, "Internal Server Error - Adding New User")
-		finally:
-			if cursor:
-				cursor.close()
+		result_signup = signup_user(name, email, password)
+		return result_signup
 
 @app.put("/api/user/auth", responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def signin(user: UserSignIn, connection=Depends(get_connection)):
+async def signin(user: UserSignIn):
 	email = user.email
 	password = user.password
 	
-	try:
-		find_user = ("SELECT id, name FROM user "
-			"WHERE email = %s "
-			"and password = %s")
-		user_credential = (email, password)
-		cursor = connection.cursor()
-		cursor.execute(find_user, user_credential)
-		result = cursor.fetchall()
-	except Exception:
-		raise_custom_error(500, "Internal Server Error - Verifying User")
-	finally:
-		if cursor:
-			cursor.close()
+	result = signin_user(email, password)
 	
 	if result:
 		for (id, name) in result:
@@ -317,24 +223,9 @@ async def get_user_data(authorization: str = Header(...)):
 		return TokenData(data=None)
 
 @app.get("/api/attractions", response_model=AttractionsResponse, responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def get_attractions(page: int = Query(0, ge=0), keyword: str = Query(None), connection=Depends(get_connection)):
+async def handle_attractions(page: int = Query(0, ge=0), keyword: str = Query(None)):
 	if keyword:
-		try:
-			query_keyword = ("SELECT * FROM data "
-					"WHERE name LIKE %s OR mrt = %s "
-					"ORDER BY id "
-					"LIMIT 12 OFFSET %s;")
-			offset = page * 12
-			params = ("%" + keyword + "%", keyword, offset)
-			cursor = connection.cursor()
-			cursor.execute(query_keyword, params)
-			result = cursor.fetchall()
-		except Exception:
-			raise_custom_error(500, "Internal Server Error")
-		finally:
-			if cursor:
-				cursor.close()
-		
+		result = get_attractions_by_keyword(page, keyword)
 		if result:
 			keys = ["id", "name", "category", "description", "address", "transport", "mrt", "lat", "lng", "images"]
 
@@ -357,33 +248,24 @@ async def get_attractions(page: int = Query(0, ge=0), keyword: str = Query(None)
 			data = attractions_list_by_keyword
 		)
 	else:
-		try:
-			query_paginated = ("SELECT * FROM data "
-						"ORDER BY id "
-						"LIMIT 12 OFFSET %s;")
-			offset = page * 12
-			cursor = connection.cursor()
-			cursor.execute(query_paginated, (offset,))
-			result = cursor.fetchall()
-		except Exception:
-			raise_custom_error(500, "Internal Server Error")
-		finally:
-			if cursor:
-				cursor.close()
-		
-		keys = ["id", "name", "category", "description", "address", "transport", "mrt", "lat", "lng", "images"]
+		result = get_attractions(page)
 
-		attractions_list = [dict(zip(keys, attraction)) for attraction in result]
+		if result:
+			keys = ["id", "name", "category", "description", "address", "transport", "mrt", "lat", "lng", "images"]
 
-		for attraction in attractions_list:
-			attraction["images"] = json.loads(attraction["images"])
+			attractions_list = [dict(zip(keys, attraction)) for attraction in result]
 
-		if attractions_list == []:
-			raise_custom_error(404, "Data Not Found")
-		elif len(attractions_list) < 12:
-			next_page = None
+			for attraction in attractions_list:
+				attraction["images"] = json.loads(attraction["images"])
+
+			if attractions_list == []:
+				raise_custom_error(404, "Data Not Found")
+			elif len(attractions_list) < 12:
+				next_page = None
+			else:
+				next_page = page + 1
 		else:
-			next_page = page + 1
+			raise_custom_error(404, "Data Not Found")
 
 		return AttractionsResponse(
 			nextPage = next_page,
@@ -391,19 +273,8 @@ async def get_attractions(page: int = Query(0, ge=0), keyword: str = Query(None)
 		)
 
 @app.get("/api/attraction/{attractionId}", response_model=AttractionResponse, responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def get_attraction_by_id(attractionId: int, connection=Depends(get_connection)):
-	try:
-		query_by_id = ("SELECT * FROM data "
-					"WHERE id = %s;")
-		cursor = connection.cursor()
-		cursor.execute(query_by_id, (attractionId,))
-		result = cursor.fetchone()
-	except Exception:
-		raise_custom_error(500, "Internal Server Error")
-	finally:
-		if cursor:
-			cursor.close()
-	
+async def handle_attraction_by_id(attractionId: int):
+	result = get_attraction_by_id(attractionId)
 	if result:
 		keys = ["id", "name", "category", "description", "address", "transport", "mrt", "lat", "lng", "images"]
 
@@ -417,20 +288,8 @@ async def get_attraction_by_id(attractionId: int, connection=Depends(get_connect
 		raise_custom_error(400, "Incorrect or Invalid Attraction Id")
 
 @app.get("/api/mrts", response_model=MrtResponse, responses={500: {"model": ErrorResponse}})
-async def get_mrts(connection=Depends(get_connection)):
-	try:
-		query_mrt_count = ("SELECT mrt, COUNT(id) AS mrt_count "
-							"FROM data "
-							"GROUP BY mrt "
-							"ORDER BY mrt_count DESC;")
-		cursor = connection.cursor()
-		cursor.execute(query_mrt_count)
-		result = cursor.fetchall()
-	except Exception:
-		raise_custom_error(500, "Internal Server Error")
-	finally:
-		if cursor:
-			cursor.close()
+async def handle_mrts():
+	result = get_mrts()
 	
 	mrts_list = []
 	for mrt_count in result:

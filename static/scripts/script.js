@@ -2,7 +2,6 @@ function createSpotItems(id, imageUrl, name, mrt, category) {
     const link = document.createElement("a");
     const linkUrl = `/attraction/${id}`;
     link.setAttribute("href", linkUrl);
-    link.setAttribute("target", "_blank");
 
     const spotItem = document.createElement("div");
     spotItem.className = "spot-item";
